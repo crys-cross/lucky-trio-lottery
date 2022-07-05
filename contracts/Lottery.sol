@@ -64,10 +64,14 @@ contract Lottery {
     //         entries.push(Entries(playersNumber, msg.sender));
     //         s_playersChosenNumber[player] = playersNumber;
     //     }
+
+    function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {
+        //to follow
+    }
 }
 
-//todo
-//map player address to number
-//function to choose lucky number
+//TODO
+//map player address to their chosen number/s(array or mapping)
+//function to choose lucky number(fulfillRandomWords)
 //array to get addresses who chose the lucky number
 //function to divide potmoney and send to all winners
