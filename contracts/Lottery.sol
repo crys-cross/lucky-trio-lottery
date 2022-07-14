@@ -10,7 +10,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 contract Lottery {
     //Lottery Variable
     uint256 private s_playersNumber;
-    address private s_players;
+    address private payable s_players;
 
     //Chainlink Variables
     // uint256 private immutable i_entranceFee;
@@ -60,10 +60,10 @@ contract Lottery {
         s_players = address(payable(msg.sender));
     }
 
-    //     function addEntry(address player, uint256 playersNumber) public {
-    //         entries.push(Entries(playersNumber, msg.sender));
-    //         s_playersChosenNumber[player] = playersNumber;
-    //     }
+        function addEntry(address player, uint256 playersNumber) public {
+            entries.push(Entries(playersNumber, msg.sender));
+            s_playersChosenNumber[player] = playersNumber;
+        }
 
     function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {
         //to follow
