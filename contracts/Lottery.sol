@@ -14,45 +14,58 @@ import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 
 error Lottery_Not_enough_ETH_paid();
 error Raffle__NotOpen();
+error Reffle__UpKeepNotNeeded(uint256 currentBalance, uint256 numpPlayers, uint256 raffleState);
 error Raffle__TransferFailed();
 
-contract LotteryTrio {
+contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
     /*Type declarations*/
     enum RaffleState {
         OPEN,
         CALCULATING
     }
 
-    //lottery variable
+    /*State Variables */
     uint256[] private s_playersNumber; //1
     address payable[] private s_players; //
     uint256 private immutable i_entranceFee;
-    // RaffleState private s_raffleState;
+    VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
+    bytes32 private immutable i_gasLane;
+    uint64 private immutable i_subscriptionId;
+    uint32 private immutable i_callbackGasLimit;
+    uint16 private constant REQUEST_CONFIRMATIONS = 3;
+    uint32 private constant NUM_WORDS = 1;
+
+    /*LotteryVariables*/
+    address private s_recentWinner;
+    RaffleState private s_raffleState;
+    uint256 private s_lastTimeStamp;
+    uint256 private immutable i_interval;
 
     //mapping
     mapping(uint256 => address) public s_playersEntry;
 
     /*Events*/
     event RaffleEnter(address indexed player);
+    event RequestedRaffleWinner(uint256 indexed requestId);
     event WinnerPicked(address indexed player);
 
-    // constructor(
-    //     address vrfCoordinatorV2, //contract
-    //     uint256 entranceFee,
-    //     bytes32 gasLane,
-    //     uint64 subscriptionId,
-    //     uint32 callbackGasLimit,
-    //     uint256 interval
-    // ) VRFConsumerBaseV2(vrfCoordinatorV2) {
-    //     i_entranceFee = entranceFee;
-    //     i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
-    //     i_gasLane = gasLane;
-    //     i_subscriptionId = subscriptionId;
-    //     i_callbackGasLimit = callbackGasLimit;
-    //     s_raffleState = RaffleState.OPEN;
-    //     s_lastTimeStamp = block.timestamp;
-    //     i_interval = interval;
-    // }
+    constructor(
+        address vrfCoordinatorV2, //contract
+        uint256 entranceFee,
+        bytes32 gasLane,
+        uint64 subscriptionId,
+        uint32 callbackGasLimit,
+        uint256 interval
+    ) VRFConsumerBaseV2(vrfCoordinatorV2) {
+        i_entranceFee = entranceFee;
+        i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
+        i_gasLane = gasLane;
+        i_subscriptionId = subscriptionId;
+        i_callbackGasLimit = callbackGasLimit;
+        s_raffleState = RaffleState.OPEN;
+        s_lastTimeStamp = block.timestamp;
+        i_interval = interval;
+    }
 
     //function to enter lottery and store player"s address and number
     function enterRaffle(uint256 playersNumber) public payable {
@@ -65,10 +78,54 @@ contract LotteryTrio {
         }
         s_players.push(payable(msg.sender));
         s_playersNumber.push(playersNumber);
-        s_playersEntry[s_playersNumber] = s_players;
+        s_playersEntry[s_playersNumber] = s_players; //push players address and chosen number to mapping
         // Emit an event when we update a dynamic array or mapping
         // Named events with the function name reversed
         emit RaffleEnter(msg.sender);
+    }
+
+    //check to see if time to draw
+    function checkUpkeep(
+        bytes memory /*checkData*/
+    )
+        public
+        view
+        override
+        returns (
+            bool upkeepNeeded,
+            bytes memory /*performData*/
+        )
+    {
+        bool isOpen = (RaffleState.OPEN == s_raffleState);
+        bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
+        bool hasPlayers = (s_players.length > 0);
+        bool hasBalance = address(this).balance > 0;
+        upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
+    }
+
+    //start draw if above conditions met
+    function performUpkeep(
+        bytes calldata /* performData */
+    ) external override {
+        (bool upkeepNeeded, ) = checkUpkeep("");
+        // require(upkeepNeeded, "Upkeep not needed");
+        if (!upkeepNeeded) {
+            revert Reffle__UpKeepNotNeeded(
+                address(this).balance,
+                s_players.length,
+                uint256(s_raffleState)
+            );
+        }
+        s_raffleState = RaffleState.CALCULATING;
+        uint256 requestId = i_vrfCoordinator.requestRandomWords(
+            i_gasLane, //keyHash(named gasLane)
+            i_subscriptionId, //s_subscriptionId(named i_subscriptionId)
+            REQUEST_CONFIRMATIONS, //requestConfirmations(named REQUEST_CONFIRMATIONS)
+            i_callbackGasLimit, //callbackGasLimit(named i_callbackGasLimit)
+            NUM_WORDS //numWords(named NUM_WORDS)
+        );
+        // Quiz... is this redundant?
+        emit RequestedRaffleWinner(requestId);
     }
 
     //pick winning number, TODO delete all entries after a draw
