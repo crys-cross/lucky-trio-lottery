@@ -78,7 +78,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
         s_players.push(payable(msg.sender));
         s_playersNumber.push(playersNumber);
-        s_playersEntry[s_playersNumber] = s_players; //push players address and chosen number to mapping
+        s_playersEntry[playersNumber] = msg.sender; //push players address and chosen number to mapping
         // Emit an event when we update a dynamic array or mapping
         // Named events with the function name reversed
         emit RaffleEnter(msg.sender);
@@ -148,6 +148,43 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
             revert Raffle__TransferFailed();
         }
         emit WinnerPicked(recentWinner);
+    }
+
+    /*View/Pure Functions*/
+    function getEntranceFee() public view returns (uint256) {
+        return i_entranceFee;
+    }
+
+    function getPlayers(uint256 index) public view returns (address) {
+        return s_players[index];
+    }
+
+    function getRecentWinner() public view returns (address) {
+        return s_recentWinner;
+    }
+
+    function getRaffleState() public view returns (RaffleState) {
+        return s_raffleState;
+    }
+
+    function getNumWords() public pure returns (uint256) {
+        return NUM_WORDS;
+    }
+
+    function getNumberofPlayers() public view returns (uint256) {
+        return s_players.length;
+    }
+
+    function getLatestTimeStamp() public view returns (uint256) {
+        return s_lastTimeStamp;
+    }
+
+    function getRequestConfirmations() public pure returns (uint256) {
+        return REQUEST_CONFIRMATIONS;
+    }
+
+    function getInterval() public view returns (uint256) {
+        return i_interval;
     }
 }
 
