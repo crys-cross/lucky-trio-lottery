@@ -1,6 +1,21 @@
-const { ethers } = require("hardhat")
+import { ethers } from "hardhat"
 
-const networkConfig = {
+export interface networkConfigItem {
+    name?: string
+    subscriptionId?: string
+    keepersUpdateInterval?: string
+    callbackGasLimit?: string
+    vrfCoordinatorV2?: string
+    gasLane?: string
+    ethUsdPriceFeed?: string
+    mintFee?: string
+}
+
+export interface networkConfigInfo {
+    [key: number]: networkConfigItem
+}
+
+export const networkConfig = {
     // Price Feed Address, values can be obtained at https://docs.chain.link/docs/reference-contracts
     // Default one is ETH/USD contract on Kovan
     dafault: {
@@ -39,13 +54,7 @@ const networkConfig = {
     },
 }
 
-const developmentChains = ["hardhat", "localhost"]
-const DECIMALS = 18
-const INITIAL_PRICE = ethers.utils.parseUnits("2000", "ether")
-
-module.exports = {
-    networkConfig,
-    developmentChains,
-    DECIMALS,
-    INITIAL_PRICE,
-}
+export const developmentChains = ["hardhat", "localhost"]
+export const DECIMALS = 18
+export const INITIAL_PRICE = ethers.utils.parseUnits("2000", "ether")
+export const VERIFICATION_BLOCK_CONFIRMATIONS = 6

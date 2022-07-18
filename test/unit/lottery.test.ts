@@ -14,5 +14,7 @@ import { developmentChains, networkConfig } from "../../helper-hardhat-config"
           beforeEach(async () => {
               accounts = await ethers.getSigners() //counld also be done with getNAmedAccounts
               // deployer = accounts[0]
+              player = accounts[1]
+              await deployments.fixture(["mocks", "raffle"])
           })
       })
