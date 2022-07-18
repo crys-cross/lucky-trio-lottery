@@ -9,12 +9,14 @@ import { developmentChains, networkConfig } from "../../helper-hardhat-config"
     ? describe.skip
     : describe("Raffle Unit Test", () => {
           let raffle, VRFCoordinatorV2Mock, raffleEntranceFee, deployer, interval
-          const chainId = network.config.chainId
+          let accounts: SignerWithAddress[]
+          let player: SignerWithAddress
 
           beforeEach(async () => {
               accounts = await ethers.getSigners() //counld also be done with getNAmedAccounts
               // deployer = accounts[0]
               player = accounts[1]
               await deployments.fixture(["mocks", "raffle"])
+              VRFCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
           })
       })
