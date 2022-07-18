@@ -16,6 +16,7 @@ error Lottery_Not_enough_ETH_paid();
 error Raffle__NotOpen();
 error Reffle__UpKeepNotNeeded(uint256 currentBalance, uint256 numpPlayers, uint256 raffleState);
 error Raffle__TransferFailed();
+error Lottery_NoOnePickedWinningNumber();
 
 contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
     /*Type declarations*/
@@ -48,6 +49,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
     event RaffleEnter(address indexed player);
     event RequestedRaffleWinner(uint256 indexed requestId);
     event WinnerPicked(address indexed player);
+    event NoWinner(uint256 winningNumber);
 
     constructor(
         address vrfCoordinatorV2, //contract
@@ -136,18 +138,24 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
         //s_players[] size 10
         //randomNumber 202
         //202 % 10 = 2
-        uint256 indexOfWinner = randomWords[0] % 999; //players can only choose 1-999
-        address payable recentWinner = s_players[indexOfWinner];
-        s_recentWinner = recentWinner;
-        s_raffleState = RaffleState.OPEN;
-        s_players = new address payable[](0);
-        s_lastTimeStamp = block.timestamp;
-        (bool success, ) = recentWinner.call{value: address(this).balance}("");
-        //require success
-        if (!success) {
-            revert Raffle__TransferFailed();
+        uint256 winningNumber = randomWords[0] % 999; //players can only choose 1-999
+        address recentWinner = s_playersEntry[winningNumber];
+        if (recentWinner == address(0)) {
+            emit NoWinner(winningNumber);
+            revert Lottery_NoOnePickedWinningNumber();
+        } else {
+            // address payable recentWinner = s_players[indexOfWinner];
+            s_recentWinner = recentWinner;
+            s_raffleState = RaffleState.OPEN;
+            s_players = new address payable[](0);
+            s_lastTimeStamp = block.timestamp;
+            (bool success, ) = recentWinner.call{value: address(this).balance}("");
+            //require success
+            if (!success) {
+                revert Raffle__TransferFailed();
+            }
+            emit WinnerPicked(recentWinner);
         }
-        emit WinnerPicked(recentWinner);
     }
 
     /*View/Pure Functions*/
