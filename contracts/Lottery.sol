@@ -1,8 +1,14 @@
-//TODO
-//map player address to their chosen number/s(array or mapping)
-//function to choose lucky number(fulfillRandomWords)
-//array to get addresses who chose the lucky number
-//function to divide potmoney and send to all winners
+//TODO 1
+//map player address to their chosen number/s(array or mapping)✅
+//function to choose lucky number(fulfillRandomWords)✅
+//array to get addresses who chose the lucky number✅
+//TODO 2
+//TBA: priceconverter to enter lottery with $10 worth of ETH(or less)
+//finalize variables
+//group helper config variables same to constructor
+//fix/finalize hardat config and helper
+//conclude unit test(and internal auditing)
+//finish front end
 
 // SPDX-License-Identifier: MIT
 
@@ -40,7 +46,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
     address private s_recentWinner;
     RaffleState private s_raffleState;
     uint256 private s_lastTimeStamp;
-    uint256 private immutable i_interval;
+    uint256 private immutable i_keepersUpdateInterval;
 
     //mapping
     mapping(uint256 => address) public s_playersEntry;
@@ -66,11 +72,11 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
         i_callbackGasLimit = callbackGasLimit;
         s_raffleState = RaffleState.OPEN;
         s_lastTimeStamp = block.timestamp;
-        i_interval = interval;
+        i_interval = i_keepersUpdateInterval;
     }
 
     //function to enter lottery and store player"s address and number
-    function enterRaffle(uint256 playersNumber) public payable {
+    function enterLottery(uint256 playersNumber) public payable {
         // require(msg.value > i_entranceFee, "Not enough ETH")
         if (msg.value < i_entranceFee) {
             revert Lottery_Not_enough_ETH_paid();
@@ -99,7 +105,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
         )
     {
         bool isOpen = (RaffleState.OPEN == s_raffleState);
-        bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_interval);
+        bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_keepersUpdateInterval);
         bool hasPlayers = (s_players.length > 0);
         bool hasBalance = address(this).balance > 0;
         upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
@@ -147,6 +153,11 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
             // address payable recentWinner = s_players[indexOfWinner];
             s_recentWinner = recentWinner;
             s_raffleState = RaffleState.OPEN;
+            //function to delete s_playersNumber[] && s_playersEntry mapping
+            for (uint256 i = 0; i < s_playersNumber.length; i++) {
+                s_playersEntry[s_playersNumber[i]] = new address(0);
+            }
+            s_playersNumber = new uint256[](0);
             s_players = new address payable[](0);
             s_lastTimeStamp = block.timestamp;
             (bool success, ) = recentWinner.call{value: address(this).balance}("");
@@ -195,79 +206,3 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
         return i_interval;
     }
 }
-
-////V1 draft
-// /*is VRFConsumerBaseV2, KeeperCompatibleInterface*/
-// contract Lottery {
-//     //Lottery Variable
-//     uint256 private s_playersNumber; //1
-//     // address payable[] private s_players; //2
-//     uint256 private s_entryCounter;
-
-//     // Chainlink Variables
-//     uint256 private immutable i_entranceFee;
-//     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
-//     bytes32 private immutable i_gasLane;
-//     uint64 private immutable i_subscriptionId;
-//     uint32 private immutable i_callbackGasLimit;
-//     uint16 private constant REQUEST_CONFIRMATIONS = 3;
-//     uint32 private constant NUM_WORDS = 1;
-
-//     //Struct
-//     struct Entries {
-//         //3
-//         uint256 s_playersNumber;
-//         address s_players; //2;
-//     }
-
-//     //Array
-//     // Entries[] public entries;
-
-//     //Mapping
-//     mapping(uint256 => Entries) public s_playersEntry;
-
-//     constructor(
-//         address vrfCoordinatorV2,
-//         uint256 entranceFee,
-//         bytes32 gasLane,
-//         uint64 subscriptionId,
-//         uint32 callbackGasLimit,
-//         uint256 interval
-//     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
-//         i_entranceFee = entranceFee;
-//         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
-//         i_gasLane = gasLane;
-//         i_subscriptionId = subscriptionId;
-//         i_callbackGasLimit = callbackGasLimit;
-//     }
-
-//     //function to enter lottery and store player"s address and number
-//     function enterLottery(address player, uint256 playersNumber) public {
-//         if (msg.value < i_entranceFee) {
-//             revert Lottery_Not_enough_ETH_paid();
-//         }
-//         uint256 newEntryNumber = s_entryCounter;
-//         s_entryCounter += s_entryCounter;
-//         s_players.push(payable(msg.sender)); //to push data into //2
-//         s_playersEntry[newEntryNumber] = Entries(playersNumber, player); //to push data into //3 and into mapping
-//     }
-
-//     //function to choose winning number
-//     function fulfillRandomWords(uint256, uint256[] memory randomWords) internal override {
-//         //to follow
-//     }
-
-//     // function getEntry(uint256 playersNumber, address player) internal {
-//     //     s_playersChosenNumber[player] = playersNumber;
-//     // }
-
-//     // function storeNumber(uint256 playersNumber) public {
-//     //     s_playersNumber = playersNumber;
-//     // }
-// }
-
-//TODO
-//map player address to their chosen number/s(array or mapping)
-//function to choose lucky number(fulfillRandomWords)
-//array to get addresses who chose the lucky number
-//function to divide potmoney and send to all winners

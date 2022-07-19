@@ -19,4 +19,29 @@ import { developmentChains, networkConfig } from "../../helper-hardhat-config"
               await deployments.fixture(["mocks", "raffle"])
               VRFCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
           })
+          describe("constructor", () => {
+              it("initializes the raffle correctly", async () => {
+                  //reserve
+              })
+          })
+          describe("enterLottery", () => {
+              it("initializes the raffle correctly", async () => {
+                  //reserve
+              })
+          })
+          describe("checkUpkeep", () => {
+              it("initializes the raffle correctly", async () => {
+                  //reserve
+              })
+          })
+          describe("performUpkeep", () => {
+              it("initializes the raffle correctly", async () => {
+                  //reserve
+              })
+          })
+          describe("fulfillRandomWords", () => {
+              it("initializes the raffle correctly", async () => {
+                  //reserve
+              })
+          })
       })

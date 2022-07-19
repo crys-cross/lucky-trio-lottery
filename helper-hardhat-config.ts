@@ -3,12 +3,11 @@ import { ethers } from "hardhat"
 export interface networkConfigItem {
     name?: string
     subscriptionId?: string
+    gasLane?: string
     keepersUpdateInterval?: string
+    raffleEntranceFee?: string
     callbackGasLimit?: string
     vrfCoordinatorV2?: string
-    gasLane?: string
-    ethUsdPriceFeed?: string
-    mintFee?: string
 }
 
 export interface networkConfigInfo {

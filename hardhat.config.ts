@@ -7,7 +7,7 @@ import "solidity-coverage"
 import "hardhat-gas-reporter"
 import "hardhat-contract-sizer"
 import "dotenvconfig"
-import { HardhatUserConfig } from "hardhat/types/config"
+import { HardhatUserConfig } from "hardhat/config"
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -99,3 +99,4 @@ const config: HardhatUserConfig = {
         },
     },
 }
+export default config
