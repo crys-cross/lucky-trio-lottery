@@ -4,6 +4,9 @@
 //array to get addresses who chose the lucky number✅
 //TODO 2
 //TBA: priceconverter to enter lottery with $10 worth of ETH(or less)
+//function check players number is not taken
+//add adminFunds(from fulfillRandomWords) and fix withdraw function{value: adminFunds}
+//add variable and view function for potMoney
 //finalize variables
 //group helper config variables same to constructor
 //fix/finalize hardat config and helper
@@ -19,7 +22,8 @@ import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 
 error Lottery_Not_enough_ETH_paid();
-error Raffle__NotOpen();
+error Lottery__NotOpen();
+error Lottery__NumberAlreadyTaken(); //for checking number
 error Reffle__UpKeepNotNeeded(uint256 currentBalance, uint256 numpPlayers, uint256 raffleState);
 error Raffle__TransferFailed();
 error Lottery_NoOnePickedWinningNumber();
@@ -47,6 +51,8 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
     RaffleState private s_raffleState;
     uint256 private s_lastTimeStamp;
     uint256 private immutable i_keepersUpdateInterval;
+    // uint256 private s_potMoney;
+    // uint256 private s_adminFunds;
 
     //mapping
     mapping(uint256 => address) public s_playersEntry;
@@ -82,7 +88,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
             revert Lottery_Not_enough_ETH_paid();
         }
         if (s_raffleState != RaffleState.OPEN) {
-            revert Raffle__NotOpen();
+            revert Lottery__NotOpen();
         }
         s_players.push(payable(msg.sender));
         s_playersNumber.push(playersNumber);
@@ -93,6 +99,15 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
     }
 
     //check to see if time to draw
+    /**
+     * @dev This is the function that the Chainlink Keeper nodes call
+     * they look for `upkeepNeeded` to return True.
+     * the following should be true for this to return true:
+     * 1. The time interval has passed between raffle runs.
+     * 2. The lottery is open.
+     * 3. The contract has ETH.
+     * 4. Implicity, your subscription is funded with LINK.
+     */
     function checkUpkeep(
         bytes memory /*checkData*/
     )
@@ -136,7 +151,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
         emit RequestedRaffleWinner(requestId);
     }
 
-    //pick winning number, TODO delete all entries after a draw
+    //pick winning number, TODO deduct value to add to s_adminFunds
     function fulfillRandomWords(
         uint256, /*requestId*/
         uint256[] memory randomWords
@@ -168,6 +183,25 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
             emit WinnerPicked(recentWinner);
         }
     }
+
+    /*withdraw function*/
+    //  function withdrawAdminFund() public payable onlyOwner {
+    //     address[] memory funders = sfunders;
+    //     // mappings can't be in memory, sorry!
+    //     for (
+    //         uint256 funderIndex = 0;
+    //         funderIndex < funders.length;
+    //         funderIndex++
+    //     ) {
+    //         address funder = funders[funderIndex];
+    //         addressToAmountFunded[funder] = 0;
+    //     }
+    //     sfunders = new address[](0);
+    //     // payable(msg.sender).transfer(address(this).balance)
+    //     // require(success);
+    //     (bool success, ) = i_owner.call{value: s_adminFunds}("");
+    //     require(success);
+    // }
 
     /*View/Pure Functions*/
     function getEntranceFee() public view returns (uint256) {
@@ -205,4 +239,12 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
     function getInterval() public view returns (uint256) {
         return i_interval;
     }
+
+    // function getAdminFund() public view returns (uint256) {
+    //     return s_adminFunds;
+    // }
+
+    // function getPotMoney() public view returns (uint256) {
+    //     return s_potMoney;
+    // }
 }
