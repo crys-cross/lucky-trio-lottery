@@ -1,4 +1,4 @@
-import "typechain/hardhat"
+import "@typechain/hardhat"
 import "@nomiclabs/hardhat-waffle"
 import "@nomiclabs/hardhat-etherscan"
 import "@nomiclabs/hardhat-ethers"
@@ -6,7 +6,7 @@ import "hardhat-deploy"
 import "solidity-coverage"
 import "hardhat-gas-reporter"
 import "hardhat-contract-sizer"
-import "dotenvconfig"
+import "dotenv/config"
 import { HardhatUserConfig } from "hardhat/config"
 
 /**

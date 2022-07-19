@@ -4,9 +4,9 @@
 //array to get addresses who chose the lucky number✅
 //TODO 2
 //TBA: priceconverter to enter lottery with $10 worth of ETH(or less)
-//function check players number is not taken
-//add adminFunds(from fulfillRandomWords) and fix withdraw function{value: adminFunds}
-//add variable and view function for potMoney
+//function check players number is not taken✅
+//add adminFunds(from fulfillRandomWords) and fix withdraw function{value: adminFunds}✅ for testing
+//add variable and view function for potMoney✅
 //finalize variables
 //group helper config variables same to constructor
 //fix/finalize hardat config and helper
@@ -20,6 +20,7 @@ pragma solidity ^0.8.8;
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 error Lottery_Not_enough_ETH_paid();
 error Lottery__NotOpen();
@@ -28,7 +29,7 @@ error Reffle__UpKeepNotNeeded(uint256 currentBalance, uint256 numpPlayers, uint2
 error Raffle__TransferFailed();
 error Lottery_NoOnePickedWinningNumber();
 
-contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
+contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
     /*Type declarations*/
     enum RaffleState {
         OPEN,
@@ -51,8 +52,9 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
     RaffleState private s_raffleState;
     uint256 private s_lastTimeStamp;
     uint256 private immutable i_keepersUpdateInterval;
-    // uint256 private s_potMoney;
-    // uint256 private s_adminFunds;
+    uint256 private s_potMoney;
+    uint256 private s_adminFunds;
+    address public s_owner;
 
     //mapping
     mapping(uint256 => address) public s_playersEntry;
@@ -78,7 +80,8 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
         i_callbackGasLimit = callbackGasLimit;
         s_raffleState = RaffleState.OPEN;
         s_lastTimeStamp = block.timestamp;
-        i_interval = i_keepersUpdateInterval;
+        i_keepersUpdateInterval = interval;
+        s_owner = msg.sender;
     }
 
     //function to enter lottery and store player"s address and number
@@ -89,6 +92,9 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
         if (s_raffleState != RaffleState.OPEN) {
             revert Lottery__NotOpen();
+        }
+        if (s_playersEntry[playersNumber] != address(0)) {
+            revert Lottery__NumberAlreadyTaken();
         }
         s_players.push(payable(msg.sender));
         s_playersNumber.push(playersNumber);
@@ -162,6 +168,8 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
         uint256 winningNumber = randomWords[0] % 999; //players can only choose 1-999
         address recentWinner = s_playersEntry[winningNumber];
         if (recentWinner == address(0)) {
+            s_adminFunds = ((address(this).balance) - (s_adminFunds)) / 10 + (s_adminFunds);
+            s_potMoney = (address(this).balance) - (s_adminFunds);
             emit NoWinner(winningNumber);
             revert Lottery_NoOnePickedWinningNumber();
         } else {
@@ -169,12 +177,16 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
             s_recentWinner = recentWinner;
             s_raffleState = RaffleState.OPEN;
             //function to delete s_playersNumber[] && s_playersEntry mapping
-            for (uint256 i = 0; i < s_playersNumber.length; i++) {
-                s_playersEntry[s_playersNumber[i]] = new address(0);
+            uint256[] memory numbers = s_playersNumber;
+            for (uint256 numberIndex = 0; numberIndex < numbers.length; numberIndex++) {
+                uint256 index = numbers[numberIndex];
+                s_playersEntry[index] = address[](0);
             }
             s_playersNumber = new uint256[](0);
             s_players = new address payable[](0);
             s_lastTimeStamp = block.timestamp;
+            s_adminFunds = ((address(this).balance) - (s_adminFunds)) / 10 + (s_adminFunds);
+            s_potMoney = (address(this).balance) - (s_adminFunds);
             (bool success, ) = recentWinner.call{value: address(this).balance}("");
             //require success
             if (!success) {
@@ -184,23 +196,16 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
         }
     }
 
-    /*withdraw function*/
-    //  function withdrawAdminFund() public payable onlyOwner {
-    //     address[] memory funders = sfunders;
-    //     // mappings can't be in memory, sorry!
-    //     for (
-    //         uint256 funderIndex = 0;
-    //         funderIndex < funders.length;
-    //         funderIndex++
-    //     ) {
-    //         address funder = funders[funderIndex];
-    //         addressToAmountFunded[funder] = 0;
-    //     }
-    //     sfunders = new address[](0);
-    //     // payable(msg.sender).transfer(address(this).balance)
-    //     // require(success);
-    //     (bool success, ) = i_owner.call{value: s_adminFunds}("");
-    //     require(success);
+    /*withdraw function for admin*/
+    function withdrawAdminFund() public payable onlyOwner {
+        payable(msg.sender).transfer(s_adminFunds);
+        s_adminFunds = 0;
+    }
+
+    // /*emergency withdraw*/
+    // function withdrawAdminFund() public payable onlyOwner {
+    //     payable(msg.sender).transfer(address(this).balance);
+    //     s_adminFunds = 0;
     // }
 
     /*View/Pure Functions*/
@@ -237,14 +242,14 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface {
     }
 
     function getInterval() public view returns (uint256) {
-        return i_interval;
+        return i_keepersUpdateInterval;
     }
 
-    // function getAdminFund() public view returns (uint256) {
-    //     return s_adminFunds;
-    // }
+    function getAdminFund() public view returns (uint256) {
+        return s_adminFunds;
+    }
 
-    // function getPotMoney() public view returns (uint256) {
-    //     return s_potMoney;
-    // }
+    function getPotMoney() public view returns (uint256) {
+        return s_potMoney;
+    }
 }
