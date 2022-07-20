@@ -8,8 +8,8 @@
 //add adminFunds(from fulfillRandomWords) and fix withdraw function{value: adminFunds}✅ for testing
 //add variable and view function for potMoney✅
 //finalize variables
-//group helper config variables same to constructor
-//fix/finalize hardat config and helper
+//group helper config variables same to constructor and edits for other networks
+//fix/finalize hardat config, helper and .env(mainline and testnet address)
 //conclude unit test(and internal auditing)
 //finish front end
 
@@ -20,6 +20,8 @@ pragma solidity ^0.8.8;
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
+// import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+// import "./PriceConverter.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 error Lottery_Not_enough_ETH_paid();
@@ -30,6 +32,9 @@ error Raffle__TransferFailed();
 error Lottery_NoOnePickedWinningNumber();
 
 contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
+    /*Library*/
+    // using PriceConverter for uint256
+
     /*Type declarations*/
     enum RaffleState {
         OPEN,
@@ -37,8 +42,8 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
     }
 
     /*State Variables */
-    uint256[] private s_playersNumber; //1
-    // address payable[] private s_players; //
+    uint256[] private s_playersNumber;
+    // address payable[] private s_players;
     uint256 private immutable i_entranceFee;
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
     bytes32 private immutable i_gasLane;
@@ -56,6 +61,9 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
     uint256 private s_adminFunds;
     address public s_owner;
 
+    /*Price Converter Variable*/
+    // AggregatorV3Interface public s_priceFeed;
+
     //mapping
     mapping(uint256 => address) public s_playersEntry;
 
@@ -71,7 +79,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
         bytes32 gasLane,
         uint64 subscriptionId,
         uint32 callbackGasLimit,
-        uint256 interval
+        uint256 interval // address priceFeed   //also contract
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_entranceFee = entranceFee;
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
@@ -81,6 +89,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
         s_raffleState = RaffleState.OPEN;
         s_lastTimeStamp = block.timestamp;
         i_keepersUpdateInterval = interval;
+        // s_priceFeed = AggregatorV3Interface(priceFeed);
         s_owner = msg.sender;
     }
 
@@ -90,6 +99,10 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
         if (msg.value < i_entranceFee) {
             revert Lottery_Not_enough_ETH_paid();
         }
+        ////For testing with priceConverter below to replace above
+        //  if (msg.value.getConversionRate(s_priceFeed) < i_entranceFee) {
+        //     revert Lottery_Not_enough_ETH_paid();
+        // }
         if (s_raffleState != RaffleState.OPEN) {
             revert Lottery__NotOpen();
         }
