@@ -25,7 +25,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 error Lottery_Not_enough_ETH_paid();
 error Lottery__NotOpen();
 error Lottery__NumberAlreadyTaken(); //for checking number
-error Reffle__UpKeepNotNeeded(uint256 currentBalance, uint256 numpPlayers, uint256 raffleState);
+error Reffle__UpKeepNotNeeded(uint256 currentBalance, uint256 playersNum, uint256 raffleState);
 error Raffle__TransferFailed();
 error Lottery_NoOnePickedWinningNumber();
 
@@ -38,7 +38,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
 
     /*State Variables */
     uint256[] private s_playersNumber; //1
-    address payable[] private s_players; //
+    // address payable[] private s_players; //
     uint256 private immutable i_entranceFee;
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
     bytes32 private immutable i_gasLane;
@@ -96,9 +96,9 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
         if (s_playersEntry[playersNumber] != address(0)) {
             revert Lottery__NumberAlreadyTaken();
         }
-        s_players.push(payable(msg.sender));
+        // s_players.push(payable(msg.sender));
         s_playersNumber.push(playersNumber);
-        s_playersEntry[playersNumber] = msg.sender; //push players address and chosen number to mapping
+        s_playersEntry[playersNumber] = payable(msg.sender); //push players address and chosen number to mapping
         // Emit an event when we update a dynamic array or mapping
         // Named events with the function name reversed
         emit RaffleEnter(msg.sender);
@@ -127,7 +127,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
     {
         bool isOpen = (RaffleState.OPEN == s_raffleState);
         bool timePassed = ((block.timestamp - s_lastTimeStamp) > i_keepersUpdateInterval);
-        bool hasPlayers = (s_players.length > 0);
+        bool hasPlayers = (s_playersNumber.length > 0);
         bool hasBalance = address(this).balance > 0;
         upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
     }
@@ -141,7 +141,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
         if (!upkeepNeeded) {
             revert Reffle__UpKeepNotNeeded(
                 address(this).balance,
-                s_players.length,
+                s_playersNumber.length,
                 uint256(s_raffleState)
             );
         }
@@ -180,14 +180,19 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
             uint256[] memory numbers = s_playersNumber;
             for (uint256 numberIndex = 0; numberIndex < numbers.length; numberIndex++) {
                 uint256 index = numbers[numberIndex];
-                s_playersEntry[index] = address[](0);
+                s_playersEntry[index] = payable(address(0));
             }
+            ////v2 mapping
+            // for (uint256 i = 0; numberIndex < s_playersNumber.length; i++) {
+            //     uint256 index = s_playersNumber[i];
+            //     s_playersEntry[index] = address[](0);
+            // }
             s_playersNumber = new uint256[](0);
-            s_players = new address payable[](0);
+            // s_players = new address payable[](0);
             s_lastTimeStamp = block.timestamp;
             s_adminFunds = ((address(this).balance) - (s_adminFunds)) / 10 + (s_adminFunds);
             s_potMoney = (address(this).balance) - (s_adminFunds);
-            (bool success, ) = recentWinner.call{value: address(this).balance}("");
+            (bool success, ) = recentWinner.call{value: s_potMoney}("");
             //require success
             if (!success) {
                 revert Raffle__TransferFailed();
@@ -213,9 +218,9 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
         return i_entranceFee;
     }
 
-    function getPlayers(uint256 index) public view returns (address) {
-        return s_players[index];
-    }
+    // function getPlayers(uint256 index) public view returns (address) {
+    //     return s_players[index];
+    // }
 
     function getRecentWinner() public view returns (address) {
         return s_recentWinner;
@@ -230,7 +235,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
     }
 
     function getNumberofPlayers() public view returns (uint256) {
-        return s_players.length;
+        return s_playersNumber.length;
     }
 
     function getLatestTimeStamp() public view returns (uint256) {

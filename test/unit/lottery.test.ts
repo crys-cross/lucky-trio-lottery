@@ -3,7 +3,7 @@ import { assert, expect } from "chai"
 import { BigNumber } from "ethers"
 import { deployments, ethers, network } from "hardhat"
 import { developmentChains, networkConfig } from "../../helper-hardhat-config"
-// import { Raffle, VRFCoordinatorV2Mock } from "../../typechain-types"
+// import { Lottery, VRFCoordinatorV2Mock } from "../../typechain-types"
 
 !developmentChains.includes(network.name)
     ? describe.skip
@@ -41,6 +41,11 @@ import { developmentChains, networkConfig } from "../../helper-hardhat-config"
           })
           describe("fulfillRandomWords", () => {
               it("initializes the raffle correctly", async () => {
+                  //reserve
+              })
+          })
+          describe("withdrawAdminFund", () => {
+              it("only Owner can withdraw and adminFund to zero after", async () => {
                   //reserve
               })
           })
