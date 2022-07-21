@@ -5,7 +5,7 @@ export interface networkConfigItem {
     subscriptionId?: string
     gasLane?: string
     keepersUpdateInterval?: string
-    raffleEntranceFee?: string
+    lotteryEntranceFee?: string
     callbackGasLimit?: string
     vrfCoordinatorV2?: string
     ethUsdPriceFeed?: string
@@ -31,7 +31,7 @@ export const networkConfig: networkConfigInfo = {
     // },
     31337: {
         name: "localhost",
-        raffleEntranceFee: ethers.utils.parseEther("0.01").toString(),
+        lotteryEntranceFee: ethers.utils.parseEther("0.01").toString(),
         gasLane: "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc",
         keepersUpdateInterval: "30",
         callbackGasLimit: "500000", // 500,000 gas
@@ -42,7 +42,7 @@ export const networkConfig: networkConfigInfo = {
         name: "rinkeby",
         ethUsdPriceFeed: "0x8A753747A1Fa494EC906cE90E9f37563A8AF630e",
         vrfCoordinatorV2: "0x6168499c0cFfCaCD319c818142124B7A15E857ab",
-        raffleEntranceFee: ethers.utils.parseEther("0.01").toString(),
+        lotteryEntranceFee: ethers.utils.parseEther("0.01").toString(),
         gasLane: "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc",
         subscriptionId: "6727", //for rinkeby
         callbackGasLimit: "500000" /*500,000*/,

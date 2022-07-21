@@ -11,10 +11,11 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
           let lottery: LotteryTrio
           let lotteryContract: LotteryTrio
           let vrfCoordinatorV2Mock: VRFCoordinatorV2Mock
-          let raffleEntranceFee: BigNumber
+          let lotteryEntranceFee: BigNumber
           let interval: number
           let accounts: SignerWithAddress[]
           let player: SignerWithAddress
+          let playersNumber: number = 888
 
           beforeEach(async () => {
               accounts = await ethers.getSigners() //could also be done with getNamedAccounts
@@ -24,7 +25,7 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
               vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
               lotteryContract = await ethers.getContract("LotteryTrio")
               lottery = lotteryContract.connect(player)
-              raffleEntranceFee = await lottery.getEntranceFee()
+              lotteryEntranceFee = await lottery.getEntranceFee()
               interval = (await lottery.getInterval()).toNumber()
           })
           describe("constructor", () => {
@@ -32,8 +33,8 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
                   console.log(network.config.chainId)
                   // Ideally, we'd separate these out so that only 1 assert per "it" block
                   // And ideally, we'd make this check everything
-                  const raffleState = (await lottery.getRaffleState()).toString()
-                  assert.equal(raffleState, "0")
+                  const lotteryState = (await lottery.getLotteryState()).toString()
+                  assert.equal(lotteryState, "0")
                   assert.equal(
                       interval.toString(),
                       networkConfig[network.config.chainId!]["keepersUpdateInterval"]
@@ -43,53 +44,115 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
           })
           describe("enterLottery", () => {
               it("reverts when you don't pay enough", async () => {
-                  await expect(lottery.enterLottery()).to.be.revertedWith(
+                  await expect(lottery.enterLottery(playersNumber)).to.be.revertedWith(
                       "Lottery_Not_enough_ETH_paid"
                   )
               })
               it("reverts when rafflestate is closed || can't enter when lotter is calculating", async () => {
-                  //reserve
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval + 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
+                  // pretend to be a keeper
+                  await lottery.performUpkeep([])
+                  await expect(
+                      lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  ).to.be.revertedWith("Lottery__NotOpen")
               })
               it("reverts when your number is already taken", async () => {
-                  //reserve
+                  //player 1 enter
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  //initlialize player 2
+                  const lottery2 = lotteryContract.connect(accounts[2])
+                  //will expect error player 2 enter with same number
+                  await expect(
+                      lottery2.enterLottery(888, { value: lotteryEntranceFee })
+                  ).to.be.revertedWith("Lottery__NumberAlreadyTaken")
               })
               it("properly saves players address and number", async () => {
-                  //reserve
+                  //player 1 enter
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  // const contractPlayer = await lottery.getPlayersNumberbyIndex(0)
+                  //check if entered number and address saved
+                  // assert(contractPlayer == 888)//TODO check 888 is saved
               })
               it("emits event on enter", async () => {
-                  //reserve
+                  await expect(
+                      lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  ).to.emit(lottery, "RaffleEnter")
               })
           })
           describe("checkUpkeep", () => {
               it("returns false if people haven't sent any ETH", async () => {
-                  //reserve
+                  await network.provider.send("evm_increaseTime", [interval + 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
+                  const { upkeepNeeded } = await lottery.callStatic.checkUpkeep("0x")
+                  assert(!upkeepNeeded)
               })
               it("returns false if raffle isn't open", async () => {
-                  //reserve
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval + 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
+                  await lottery.performUpkeep([])
+                  const raffleState = await lottery.getLotteryState()
+                  const { upkeepNeeded } = await lottery.callStatic.checkUpkeep("0x")
+                  assert.equal(raffleState.toString() == "1", upkeepNeeded == false)
               })
               it("returns false if enough time hasn't passed", async () => {
-                  //reserve
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval - 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
+                  const { upkeepNeeded } = await lottery.callStatic.checkUpkeep("0x")
+                  assert(!upkeepNeeded)
               })
               it("returns true if enough time has passed, has players, eth, and is open", async () => {
-                  //reserve
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval + 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
+                  const { upkeepNeeded } = await lottery.callStatic.checkUpkeep("0x")
+                  assert(upkeepNeeded)
               })
           })
           describe("performUpkeep", () => {
               it("can only run if checkupkeep is true", async () => {
-                  //reserve
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval + 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
+                  const tx = await lottery.performUpkeep("0x")
+                  assert(tx)
               })
               it("reverts if checkup is false", async () => {
-                  //reserve
+                  await expect(lottery.performUpkeep("0x")).to.be.revertedWith(
+                      "Reffle__UpKeepNotNeeded"
+                  )
               })
               it("updates the raffle state and emits a requestId", async () => {
-                  //reserve
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval + 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
+                  const txResponse = await lottery.performUpkeep("0x")
+                  const txReceipt = await txResponse.wait(1)
+                  const lotterytate = await lottery.getLotteryState()
+                  const requestId = txReceipt!.events![1].args!.requestId
+                  assert(requestId.toNumber() > 0)
+                  assert(lotterytate == 1)
               })
           })
           describe("fulfillRandomWords", () => {
               beforeEach(async () => {
-                  //reserve
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await network.provider.send("evm_increaseTime", [interval + 1])
+                  await network.provider.request({ method: "evm_mine", params: [] })
               })
               it("can only be called after performupkeep", async () => {
+                  //reserve
+              })
+              it("reverts if no one picked the winning number", async () => {
+                  //reserve
+              })
+              it("adjust potMoney and adminFund even if no winner", async () => {
+                  //reserve
+              })
+              it("emit event even if no winner", async () => {
                   //reserve
               })
               it("picks a winner, resets, and sends money", async () => {
