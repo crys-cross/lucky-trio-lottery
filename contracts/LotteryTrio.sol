@@ -247,6 +247,21 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
         return NUM_WORDS;
     }
 
+    function getPlayersNumberbyIndex(uint256 index) public view returns (uint256) {
+        return s_playersNumber[index];
+    }
+
+    // experimental to get playersNumber by address
+    function getsPlayersEntry() public view returns (string[] memory, address[] memory) {
+        string[] memory ms_playersNumber = new string[](s_playersNumber.length);
+        address[] memory mPlayers = new address[](s_playersNumber.length);
+        for (uint256 i = 0; i < s_playersNumber.length; i++) {
+            ms_playersNumber[i] = ms_playersNumber[i];
+            mPlayers[i] = s_playersEntry[s_playersNumber[i]];
+        }
+        return (ms_playersNumber, mPlayers);
+    }
+
     function getNumberofPlayers() public view returns (uint256) {
         return s_playersNumber.length;
     }

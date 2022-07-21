@@ -37,13 +37,15 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
                   assert.equal(
                       interval.toString(),
                       networkConfig[network.config.chainId!]["keepersUpdateInterval"]
-                      //check more constructor to cheack
+                      //check more constructor to test
                   )
               })
           })
           describe("enterLottery", () => {
               it("reverts when you don't pay enough", async () => {
-                  //reserve
+                  await expect(lottery.enterLottery()).to.be.revertedWith(
+                      "Lottery_Not_enough_ETH_paid"
+                  )
               })
               it("reverts when rafflestate is closed || can't enter when lotter is calculating", async () => {
                   //reserve
