@@ -1,6 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { assert, expect } from "chai"
 import { BigNumber } from "ethers"
+import { isAddress } from "ethers/lib/utils"
 import { deployments, ethers, network } from "hardhat"
 import { developmentChains, networkConfig } from "../../helper-hardhat-config"
 import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
@@ -71,9 +72,11 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
               it("properly saves players address and number", async () => {
                   //player 1 enter
                   await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
-                  // const contractPlayer = await lottery.getPlayersNumberbyIndex(0)
+                  const playerAddress = await lottery.s_playersEntry(playersNumber) // mapping
+                  //   const number = await lottery.s_playersNumber(0)//TODO check 888 is saved
                   //check if entered number and address saved
-                  // assert(contractPlayer == 888)//TODO check 888 is saved
+                  assert.equal(playerAddress, player.address)
+                  //   assert.equal(lottery.getPlayersNumberbyIndex(0), number)//TODO check 888 is saved
               })
               it("emits event on enter", async () => {
                   await expect(
@@ -139,29 +142,77 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
           })
           describe("fulfillRandomWords", () => {
               beforeEach(async () => {
-                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
                   await network.provider.send("evm_increaseTime", [interval + 1])
                   await network.provider.request({ method: "evm_mine", params: [] })
               })
               it("can only be called after performupkeep", async () => {
-                  //reserve
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await expect(
+                      vrfCoordinatorV2Mock.fulfillRandomWords(0, lottery.address)
+                  ).to.be.revertedWith("nonexistent request")
+                  await expect(
+                      vrfCoordinatorV2Mock.fulfillRandomWords(1, lottery.address)
+                  ).to.be.revertedWith("nonexistent request")
               })
               it("reverts if no one picked the winning number", async () => {
-                  //reserve
+                  //player 1 and 2 send transaction
+                  const player1Number = 80
+                  const player2Number = 8
+                  const lottery2 = lotteryContract.connect(accounts[2])
+                  await lottery.enterLottery(player1Number, { value: lotteryEntranceFee })
+                  await lottery2.enterLottery(player2Number, { value: lotteryEntranceFee })
+                  //no match for winning number(TODO:recentWinner should be address(0))
+                  await expect(lotteryContract.getRecentWinner()).to.be.revertedWith(
+                      "Lottery__NoOnePickedWinningNumber"
+                  )
               })
               it("adjust potMoney and adminFund even if no winner", async () => {
-                  //reserve
+                  const player1Number = 80
+                  const player2Number = 8
+                  const lottery2 = lotteryContract.connect(accounts[2])
+                  await lottery.enterLottery(player1Number, { value: lotteryEntranceFee })
+                  await lottery2.enterLottery(player2Number, { value: lotteryEntranceFee })
+                  //check value of potMoney and adminFund after no winner below
               })
               it("emit event even if no winner", async () => {
-                  //reserve
+                  const player1Number = 80
+                  const player2Number = 8
+                  const lottery2 = lotteryContract.connect(accounts[2])
+                  await lottery.enterLottery(player1Number, { value: lotteryEntranceFee })
+                  await lottery2.enterLottery(player2Number, { value: lotteryEntranceFee })
+                  //emit event below
               })
               it("picks a winner, resets, and sends money", async () => {
+                  const player2Number = 8
+                  const lottery2 = lotteryContract.connect(accounts[2])
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await lottery2.enterLottery(player2Number, { value: lotteryEntranceFee })
+                  //check winner amount wallet and potmoney balance(0) and adminFund balance below
+              })
+              it("adjust potMoney and adminFund after winner is picked", async () => {
                   //reserve
               })
           })
           describe("withdrawAdminFund", () => {
               it("only Owner can withdraw and adminFund to zero after", async () => {
-                  //reserve
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  // Arrange(TODO: adjust)
+                  const startingFundMeBalance = await lottery.provider.getBalance(lottery.address)
+                  const startingDeployerBalance = await lottery.provider.getBalance(player.address)
+                  //Act
+                  const transactionResponse = await lottery.withdrawAdminFund()
+                  const transactionReceipt = await transactionResponse.wait()
+                  const { gasUsed, effectiveGasPrice } = transactionReceipt
+                  const gasCost = gasUsed.mul(effectiveGasPrice)
+
+                  const endingFundMeBalance = await lottery.provider.getBalance(lottery.address)
+                  const endingDeployerBalance = await lottery.provider.getBalance(player.address)
+                  // Assert
+                  assert.equal(endingFundMeBalance.toString(), "0")
+                  assert.equal(
+                      startingFundMeBalance.add(startingDeployerBalance).toString(),
+                      endingDeployerBalance.add(gasCost).toString()
+                  )
               })
           })
       })

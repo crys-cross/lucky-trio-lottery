@@ -11,6 +11,7 @@
 //group helper config variables same to constructor and edits for other networks
 //fix/finalize hardat config, helper and .env(mainline and testnet address)
 //conclude unit test(and internal auditing)
+//check coverage and make 100%
 //finish front end
 
 // SPDX-License-Identifier: MIT
@@ -180,14 +181,22 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
         //202 % 10 = 2
         uint256 winningNumber = randomWords[0] % 999; //players can only choose 1-999
         address recentWinner = s_playersEntry[winningNumber];
-        if (recentWinner == address(0)) {
+        s_recentWinner = recentWinner;
+        if (s_recentWinner == address(0)) {
             s_adminFunds = ((address(this).balance) - (s_adminFunds)) / 10 + (s_adminFunds);
             s_potMoney = (address(this).balance) - (s_adminFunds);
+            uint256[] memory numbers = s_playersNumber;
+            for (uint256 numberIndex = 0; numberIndex < numbers.length; numberIndex++) {
+                uint256 index = numbers[numberIndex];
+                s_playersEntry[index] = payable(address(0));
+            }
+            s_playersNumber = new uint256[](0);
+            s_lotteryState = LotteryState.OPEN;
+            s_lastTimeStamp = block.timestamp;
             emit NoWinner(winningNumber);
             revert Lottery__NoOnePickedWinningNumber();
         } else {
             // address payable recentWinner = s_players[indexOfWinner];
-            s_recentWinner = recentWinner;
             s_lotteryState = LotteryState.OPEN;
             //function to delete s_playersNumber[] && s_playersEntry mapping
             uint256[] memory numbers = s_playersNumber;
@@ -195,13 +204,9 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
                 uint256 index = numbers[numberIndex];
                 s_playersEntry[index] = payable(address(0));
             }
-            ////v2 mapping
-            // for (uint256 i = 0; numberIndex < s_playersNumber.length; i++) {
-            //     uint256 index = s_playersNumber[i];
-            //     s_playersEntry[index] = address[](0);
-            // }
             s_playersNumber = new uint256[](0);
             // s_players = new address payable[](0);
+            s_lotteryState = LotteryState.OPEN;
             s_lastTimeStamp = block.timestamp;
             s_adminFunds = ((address(this).balance) - (s_adminFunds)) / 10 + (s_adminFunds);
             s_potMoney = (address(this).balance) - (s_adminFunds);
