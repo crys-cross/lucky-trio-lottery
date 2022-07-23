@@ -180,17 +180,29 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
                   const lottery2 = lotteryContract.connect(accounts[2])
                   await lottery.enterLottery(player1Number, { value: lotteryEntranceFee })
                   await lottery2.enterLottery(player2Number, { value: lotteryEntranceFee })
-                  //emit event below
+                  //emit event below TODO
               })
               it("picks a winner, resets, and sends money", async () => {
                   const player2Number = 8
                   const lottery2 = lotteryContract.connect(accounts[2])
                   await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
                   await lottery2.enterLottery(player2Number, { value: lotteryEntranceFee })
-                  //check winner amount wallet and potmoney balance(0) and adminFund balance below
+                  //TODO long test
+                  //check winner wallet balance, potmoney balance(0) and adminFund balance below
               })
               it("adjust potMoney and adminFund after winner is picked", async () => {
-                  //reserve
+                  const player2Number = 8
+                  const lottery2 = lotteryContract.connect(accounts[2])
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await lottery2.enterLottery(player2Number, { value: lotteryEntranceFee })
+                  //TODO check if same as above
+              })
+              it("emit event if winner is picked", async () => {
+                  const player2Number = 8
+                  const lottery2 = lotteryContract.connect(accounts[2])
+                  await lottery.enterLottery(playersNumber, { value: lotteryEntranceFee })
+                  await lottery2.enterLottery(player2Number, { value: lotteryEntranceFee })
+                  //TODO
               })
           })
           describe("withdrawAdminFund", () => {
