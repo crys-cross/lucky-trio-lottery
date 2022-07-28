@@ -8,7 +8,7 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
 
 !developmentChains.includes(network.name)
     ? describe.skip
-    : describe("Raffle Unit Test", () => {
+    : describe("Lottery Unit Test", () => {
           let lottery: LotteryTrio
           let lotteryContract: LotteryTrio
           let vrfCoordinatorV2Mock: VRFCoordinatorV2Mock
@@ -211,7 +211,7 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
                   // Arrange(TODO: adjust)
                   const startingFundMeBalance = await lottery.provider.getBalance(lottery.address)
                   const startingDeployerBalance = await lottery.provider.getBalance(player.address)
-                  //Act
+                  //Act(TODO:FIX below change withdraw to deployer address)
                   const transactionResponse = await lottery.withdrawAdminFund()
                   const transactionReceipt = await transactionResponse.wait()
                   const { gasUsed, effectiveGasPrice } = transactionReceipt
@@ -228,3 +228,5 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
               })
           })
       })
+//TODO FIX based on fails:
+//line 103, 157, 208
