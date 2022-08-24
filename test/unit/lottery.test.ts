@@ -11,20 +11,23 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
     : describe("Lottery Unit Test", () => {
           let lottery: LotteryTrio
           let lotteryContract: LotteryTrio
+          let lotteryDeployer: LotteryTrio
           let vrfCoordinatorV2Mock: VRFCoordinatorV2Mock
           let lotteryEntranceFee: BigNumber
           let interval: number
           let accounts: SignerWithAddress[]
+          let deployer: SignerWithAddress
           let player: SignerWithAddress
           let playersNumber: number = 888
 
           beforeEach(async () => {
               accounts = await ethers.getSigners() //could also be done with getNamedAccounts
-              // deployer = accounts[0]
+              deployer = accounts[0]
               player = accounts[1]
               await deployments.fixture(["mocks", "raffle"])
               vrfCoordinatorV2Mock = await ethers.getContract("VRFCoordinatorV2Mock")
               lotteryContract = await ethers.getContract("LotteryTrio")
+              lotteryDeployer = lotteryContract.connect(deployer)
               lottery = lotteryContract.connect(player)
               lotteryEntranceFee = await lottery.getEntranceFee()
               interval = (await lottery.getInterval()).toNumber()
@@ -212,7 +215,7 @@ import { LotteryTrio, VRFCoordinatorV2Mock } from "../../typechain-types"
                   const startingFundMeBalance = await lottery.provider.getBalance(lottery.address)
                   const startingDeployerBalance = await lottery.provider.getBalance(player.address)
                   //Act(TODO:FIX below change withdraw to deployer address)
-                  const transactionResponse = await lottery.withdrawAdminFund()
+                  const transactionResponse = await lotteryDeployer.withdrawAdminFund()
                   const transactionReceipt = await transactionResponse.wait()
                   const { gasUsed, effectiveGasPrice } = transactionReceipt
                   const gasCost = gasUsed.mul(effectiveGasPrice)
