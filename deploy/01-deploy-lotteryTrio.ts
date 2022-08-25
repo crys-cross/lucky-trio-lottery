@@ -58,10 +58,10 @@ const deployLotteryTrio: DeployFunction = async (hre: HardhatRuntimeEnvironment)
         await verify(lotteryTrio.address, args)
     }
 
-    log("Run Price Feed contract with command")
-    const networkName = network.name == "hardhat" ? "localhost" : network.name
-    log(`yarn hardhat run scripts/enterRaffle.js --network ${networkName}`)
-    log("----------------------------------------------------")
+    // log("Run Price Feed contract with command")
+    // const networkName = network.name == "hardhat" ? "localhost" : network.name
+    // log(`yarn hardhat run scripts/enterRaffle.js --network ${networkName}`)
+    // log("----------------------------------------------------")
 }
 export default deployLotteryTrio
 deployLotteryTrio.tags = ["all", "raffle"]

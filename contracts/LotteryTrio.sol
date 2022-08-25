@@ -24,6 +24,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 // import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 // import "./PriceConverter.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 error Lottery_Not_enough_ETH_paid();
 error Lottery__NotOpen();
@@ -32,7 +33,7 @@ error Reffle__UpKeepNotNeeded(uint256 currentBalance, uint256 playersNum, uint25
 error Raffle__TransferFailed();
 error Lottery__NoOnePickedWinningNumber();
 
-contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
+contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, ReentrancyGuard {
     /*Library*/
     // using PriceConverter for uint256
 
@@ -220,9 +221,10 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable {
     }
 
     /*withdraw function for admin*/
-    function withdrawAdminFund() public payable onlyOwner {
-        payable(msg.sender).transfer(s_adminFunds);
+    function withdrawAdminFund() public payable onlyOwner nonReentrant {
+        uint256 amount = s_adminFunds;
         s_adminFunds = 0;
+        payable(msg.sender).transfer(amount);
     }
 
     // /*emergency withdraw*/
