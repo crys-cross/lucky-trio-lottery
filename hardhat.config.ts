@@ -60,6 +60,11 @@ const config: HardhatUserConfig = {
             accounts: [PRIVATE_KEY],
             chainId: 97,
         },
+        klaytontest: {
+            url: "https://api.baobab.klaytn.net:8651" || "",
+            accounts: [PRIVATE_KEY],
+            chainId: 1001,
+        },
         // arbitrum: {
         //     url: "https://data-seed-prebsc-1-s1.binance.org:8545" || "",
         //     accounts: [PRIVATE_KEY],

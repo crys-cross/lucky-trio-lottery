@@ -56,6 +56,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
 
     /*LotteryVariables*/
     address private s_recentWinner;
+    uint256 private s_recentWinningNumber;
     LotteryState private s_lotteryState;
     uint256 private s_lastTimeStamp;
     uint256 private immutable i_keepersUpdateInterval;
@@ -182,6 +183,7 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
         //202 % 10 = 2
         uint256 winningNumber = randomWords[0] % 999; //players can only choose 1-999
         address recentWinner = s_playersEntry[winningNumber];
+        s_recentWinningNumber = winningNumber;
         s_recentWinner = recentWinner;
         if (s_recentWinner == address(0)) {
             s_adminFunds = ((address(this).balance) - (s_adminFunds)) / 10 + (s_adminFunds);
@@ -244,6 +246,10 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
 
     function getRecentWinner() public view returns (address) {
         return s_recentWinner;
+    }
+
+    function getRecentWinningNumber() public view returns (uint256) {
+        return s_recentWinningNumber;
     }
 
     function getLotteryState() public view returns (LotteryState) {
