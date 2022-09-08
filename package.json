@@ -30,7 +30,6 @@
     "@types/node": "^18.0.6",
     "base64-sol": "^1.1.0",
     "chai": "^4.3.6",
-    "ethereum-waffle": "^3.4.4",
     "ethers": "^5.7.0",
     "hardhat": "^2.10.1",
     "hardhat-contract-sizer": "^2.6.1",
