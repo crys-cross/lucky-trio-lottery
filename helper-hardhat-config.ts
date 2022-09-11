@@ -39,8 +39,8 @@ export const networkConfig: networkConfigInfo = {
         // interval: "30",
     },
     5: {
-        name: "goerli"
-        subscriptionId: "1255", 
+        name: "goerli",
+        subscriptionId: "1255",
         gasLane: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15",
         keepersUpdateInterval: "30",
         lotteryEntranceFee: ethers.utils.parseEther("0.01").toString(),
@@ -50,7 +50,7 @@ export const networkConfig: networkConfigInfo = {
     },
     80001: {
         name: "polygon(mumbai-testnet)",
-        subscriptionId: "1766", 
+        subscriptionId: "1766",
         gasLane: "0x4b09e658ed251bcafeebbc69400383d49f344ace09b9576fe248bb02c003fe9f",
         keepersUpdateInterval: "30",
         lotteryEntranceFee: ethers.utils.parseEther("0.01").toString(),
@@ -60,7 +60,7 @@ export const networkConfig: networkConfigInfo = {
     },
     4002: {
         name: "fantom-test",
-        subscriptionId: "93", 
+        subscriptionId: "93",
         gasLane: "0x121a143066e0f2f08b620784af77cccb35c6242460b4a8ee251b4b416abaebd4",
         keepersUpdateInterval: "30",
         lotteryEntranceFee: ethers.utils.parseEther("0.01").toString(),
@@ -70,7 +70,7 @@ export const networkConfig: networkConfigInfo = {
     },
     43113: {
         name: "fuji",
-        subscriptionId: "382", 
+        subscriptionId: "382",
         gasLane: "0x354d2f95da55398f44b7cff77da56283d9c6c829a4bdf1bbcaf2ad6a4d081f61",
         keepersUpdateInterval: "30",
         lotteryEntranceFee: ethers.utils.parseEther("0.01").toString(),

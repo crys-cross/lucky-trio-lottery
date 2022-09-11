@@ -1,19 +1,3 @@
-//TODO 1
-//map player address to their chosen number/s(array or mapping)✅
-//function to choose lucky number(fulfillRandomWords)✅
-//array to get addresses who chose the lucky number✅
-//TODO 2
-//TBA: priceconverter to enter lottery with $10 worth of ETH(or less)
-//function check players number is not taken✅
-//add adminFunds(from fulfillRandomWords) and fix withdraw function{value: adminFunds}✅ for testing
-//add variable and view function for potMoney✅
-//finalize variables
-//group helper config variables same to constructor and edits for other networks
-//fix/finalize hardat config, helper and .env(mainline and testnet address)
-//conclude unit test(and internal auditing)
-//check coverage and make 100%
-//finish front end
-
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.8;
@@ -21,22 +5,30 @@ pragma solidity ^0.8.8;
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
-// import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-// import "./PriceConverter.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 error Lottery_Not_enough_ETH_paid();
 error Lottery__NotOpen();
-error Lottery__NumberAlreadyTaken(); //for checking number
-error Reffle__UpKeepNotNeeded(uint256 currentBalance, uint256 playersNum, uint256 LotteryState);
-error Raffle__TransferFailed();
+error Lottery__NumberAlreadyTaken();
+error Lottery__UpKeepNotNeeded(uint256 currentBalance, uint256 playersNum, uint256 LotteryState);
+error Lottery__TransferFailed();
 error Lottery__NoOnePickedWinningNumber();
 
-contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, ReentrancyGuard {
-    /*Library*/
-    // using PriceConverter for uint256
+/**
+ *  @title LUCKY-TRIO-LOTTERY
+ *  @author crys
+ *  @notice This contract is to demo a sample funding contract
+ *  @dev This is a Decentralized Lottery Game using Chainlink VRF
+ *  for generating randomness in choosing the winning number
+ *  submitted by the players. In the spirit of Decentralization
+ *  I chose not to make a withdraw function all funds function but
+ *  Admin/Owner may only withdraw the AdminFunds(10%) which is added
+ *  on every draw. Directly sending this contract ETH will be considered
+ *  a contribution thus will directly go to AdminFunds
+ **/
 
+contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, ReentrancyGuard {
     /*Type declarations*/
     enum LotteryState {
         OPEN,
@@ -45,7 +37,6 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
 
     /*State Variables */
     uint256[] private s_playersNumber;
-    // address payable[] private s_players;
     uint256 private immutable i_entranceFee;
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
     bytes32 private immutable i_gasLane;
@@ -62,10 +53,8 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
     uint256 private immutable i_keepersUpdateInterval;
     uint256 private s_potMoney;
     uint256 private s_adminFunds;
+    uint256 private s_TotalBalance;
     address public s_owner;
-
-    /*Price Converter Variable*/
-    // AggregatorV3Interface public s_priceFeed;
 
     //mapping
     mapping(uint256 => address) public s_playersEntry;
@@ -75,14 +64,15 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
     event RequestedRaffleWinner(uint256 indexed requestId);
     event WinnerPicked(address indexed player);
     event NoWinner(uint256 winningNumber);
+    event Log(string func, address sender, uint256 value, bytes data);
 
     constructor(
-        address vrfCoordinatorV2, //contract
+        address vrfCoordinatorV2,
         uint256 entranceFee,
         bytes32 gasLane,
         uint64 subscriptionId,
         uint32 callbackGasLimit,
-        uint256 interval // address priceFeed   //also contract
+        uint256 interval
     ) VRFConsumerBaseV2(vrfCoordinatorV2) {
         i_entranceFee = entranceFee;
         i_vrfCoordinator = VRFCoordinatorV2Interface(vrfCoordinatorV2);
@@ -92,43 +82,42 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
         s_lotteryState = LotteryState.OPEN;
         s_lastTimeStamp = block.timestamp;
         i_keepersUpdateInterval = interval;
-        // s_priceFeed = AggregatorV3Interface(priceFeed);
         s_owner = msg.sender;
     }
 
-    //function to enter lottery and store player"s address and number
+    receive() external payable {
+        s_adminFunds += msg.value;
+        emit Log("receive", msg.sender, msg.value, "");
+    }
+
+    fallback() external payable {
+        s_adminFunds += msg.value;
+        emit Log("receive", msg.sender, msg.value, msg.data);
+    }
+
     function enterLottery(uint256 playersNumber) public payable {
-        // require(msg.value > i_entranceFee, "Not enough ETH")
         if (msg.value < i_entranceFee) {
             revert Lottery_Not_enough_ETH_paid();
         }
-        ////For testing with priceConverter below to replace above
-        //  if (msg.value.getConversionRate(s_priceFeed) < i_entranceFee) {
-        //     revert Lottery_Not_enough_ETH_paid();
-        // }
         if (s_lotteryState != LotteryState.OPEN) {
             revert Lottery__NotOpen();
         }
         if (s_playersEntry[playersNumber] != address(0)) {
             revert Lottery__NumberAlreadyTaken();
         }
-        // s_players.push(payable(msg.sender));
         s_playersNumber.push(playersNumber);
-        s_playersEntry[playersNumber] = payable(msg.sender); //push players address and chosen number to mapping
-        // Emit an event when we update a dynamic array or mapping
-        // Named events with the function name reversed
+        s_playersEntry[playersNumber] = payable(msg.sender);
+        s_TotalBalance = address(this).balance;
+        uint256 cut = (s_TotalBalance - s_adminFunds) / 10;
+        s_adminFunds = cut + s_adminFunds;
+        s_potMoney = s_TotalBalance - s_adminFunds;
         emit RaffleEnter(msg.sender);
     }
 
-    //check to see if time to draw
     /**
      * @dev This is the function that the Chainlink Keeper nodes call
-     * they look for `upkeepNeeded` to return True.
-     * the following should be true for this to return true:
-     * 1. The time interval has passed between raffle runs.
-     * 2. The lottery is open.
-     * 3. The contract has ETH.
-     * 4. Implicity, your subscription is funded with LINK.
+     * they look for `upkeepNeeded` to return True. Conditions below.
+     * Please don't forget to fund LINK on subscription
      */
     function checkUpkeep(
         bytes memory /*checkData*/
@@ -148,14 +137,12 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
         upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
     }
 
-    //start draw if above conditions met
     function performUpkeep(
         bytes calldata /* performData */
     ) external override {
         (bool upkeepNeeded, ) = checkUpkeep("");
-        // require(upkeepNeeded, "Upkeep not needed");
         if (!upkeepNeeded) {
-            revert Reffle__UpKeepNotNeeded(
+            revert Lottery__UpKeepNotNeeded(
                 address(this).balance,
                 s_playersNumber.length,
                 uint256(s_lotteryState)
@@ -173,21 +160,13 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
         emit RequestedRaffleWinner(requestId);
     }
 
-    //pick winning number, TODO deduct value to add to s_adminFunds
     function fulfillRandomWords(
         uint256, /*requestId*/
         uint256[] memory randomWords
     ) internal override {
-        //s_players[] size 10
-        //randomNumber 202
-        //202 % 10 = 2
-        uint256 winningNumber = randomWords[0] % 999; //players can only choose 1-999
-        address recentWinner = s_playersEntry[winningNumber];
-        s_recentWinningNumber = winningNumber;
-        s_recentWinner = recentWinner;
+        s_recentWinningNumber = randomWords[0] % 999; //players can only choose 1-999
+        s_recentWinner = s_playersEntry[s_recentWinningNumber];
         if (s_recentWinner == address(0)) {
-            s_adminFunds = ((address(this).balance) - (s_adminFunds)) / 10 + (s_adminFunds);
-            s_potMoney = (address(this).balance) - (s_adminFunds);
             uint256[] memory numbers = s_playersNumber;
             for (uint256 numberIndex = 0; numberIndex < numbers.length; numberIndex++) {
                 uint256 index = numbers[numberIndex];
@@ -196,8 +175,8 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
             s_playersNumber = new uint256[](0);
             s_lotteryState = LotteryState.OPEN;
             s_lastTimeStamp = block.timestamp;
-            emit NoWinner(winningNumber);
-            revert Lottery__NoOnePickedWinningNumber();
+            emit NoWinner(s_recentWinningNumber);
+            // revert Lottery__NoOnePickedWinningNumber();
         } else {
             // address payable recentWinner = s_players[indexOfWinner];
             s_lotteryState = LotteryState.OPEN;
@@ -211,14 +190,14 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
             // s_players = new address payable[](0);
             s_lotteryState = LotteryState.OPEN;
             s_lastTimeStamp = block.timestamp;
-            s_adminFunds = ((address(this).balance) - (s_adminFunds)) / 10 + (s_adminFunds);
-            s_potMoney = (address(this).balance) - (s_adminFunds);
-            (bool success, ) = recentWinner.call{value: s_potMoney}("");
-            //require success
+            uint256 amount = s_potMoney;
+            s_potMoney = 0;
+            (bool success, ) = s_recentWinner.call{value: amount}("");
             if (!success) {
-                revert Raffle__TransferFailed();
+                revert Lottery__TransferFailed();
             }
-            emit WinnerPicked(recentWinner);
+            s_TotalBalance = address(this).balance;
+            emit WinnerPicked(s_recentWinner);
         }
     }
 
@@ -240,10 +219,6 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
         return i_entranceFee;
     }
 
-    // function getPlayers(uint256 index) public view returns (address) {
-    //     return s_players[index];
-    // }
-
     function getRecentWinner() public view returns (address) {
         return s_recentWinner;
     }
@@ -263,17 +238,6 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
     function getPlayersNumberbyIndex(uint256 index) public view returns (uint256) {
         return s_playersNumber[index];
     }
-
-    // experimental to get playersNumber by address
-    // function getsPlayersEntry() public view returns (string[] memory, address[] memory) {
-    //     string[] memory ms_playersNumber = new string[](s_playersNumber.length);
-    //     address[] memory mPlayers = new address[](s_playersNumber.length);
-    //     for (uint256 i = 0; i < s_playersNumber.length; i++) {
-    //         ms_playersNumber[i] = s_playersNumber[i];
-    //         mPlayers[i] = s_playersEntry[s_playersNumber[i]];
-    //     }
-    //     return (ms_playersNumber, mPlayers);
-    // }
 
     function getNumberofPlayers() public view returns (uint256) {
         return s_playersNumber.length;
@@ -297,5 +261,9 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
 
     function getPotMoney() public view returns (uint256) {
         return s_potMoney;
+    }
+
+    function getTotalBalance() public view returns (uint256) {
+        return s_TotalBalance;
     }
 }
