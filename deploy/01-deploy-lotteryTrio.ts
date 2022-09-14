@@ -52,6 +52,11 @@ const deployLotteryTrio: DeployFunction = async (hre: HardhatRuntimeEnvironment)
         waitConfirmations: waitBlockConfirmations,
     })
 
+    const blockNumBefore = await ethers.provider.getBlockNumber()
+    const blockBefore = await ethers.provider.getBlock(blockNumBefore)
+    const timestampBefore = blockBefore.timestamp
+    console.log(`current block.timestamp is: ${timestampBefore}`)
+
     // Verify the deployment
     if (!developmentChains.includes(network.name) && process.env.ETHERSCAN_API_KEY) {
         log("Verifying...")

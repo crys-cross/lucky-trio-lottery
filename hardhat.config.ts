@@ -8,13 +8,15 @@ import { HardhatUserConfig } from "hardhat/config"
  * @type import('hardhat/config').HardhatUserConfig
  */
 
-const GOERLI_RPC_URL = process.env.RINKEBY_RPC_URL
+const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL
 const PRIVATE_KEY = process.env.PRIVATE_KEY || ""
 const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY
 
 // Your API key for Etherscan, obtain one at https://etherscan.io/
-const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "Your etherscan API key"
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "Your polygonscan API key"
+const SNOWTRACE_API_KEY = process.env.SNOWTRACE_API_KEY || "Your snowtrace API key"
+const FTMSCAN_API_KEY = process.env.FTMSCAN_API_KEY || "Your ftmscan API key"
 const REPORT_GAS = process.env.REPORT_GAS || false
 
 const config: HardhatUserConfig = {
@@ -90,7 +92,12 @@ const config: HardhatUserConfig = {
         token: "ETH",
     },
     etherscan: {
-        apiKey: ETHERSCAN_API_KEY,
+        apiKey: {
+            goerli: ETHERSCAN_API_KEY!,
+            fantomtest: FTMSCAN_API_KEY,
+            fujitest: SNOWTRACE_API_KEY,
+            mumbaitest: POLYGONSCAN_API_KEY,
+        },
     },
     namedAccounts: {
         deployer: {

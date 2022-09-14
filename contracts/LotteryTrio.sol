@@ -13,7 +13,6 @@ error Lottery__NotOpen();
 error Lottery__NumberAlreadyTaken();
 error Lottery__UpKeepNotNeeded(uint256 currentBalance, uint256 playersNum, uint256 LotteryState);
 error Lottery__TransferFailed();
-error Lottery__NoOnePickedWinningNumber();
 
 /**
  *  @title LUCKY-TRIO-LOTTERY
@@ -156,7 +155,6 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
             i_callbackGasLimit, //callbackGasLimit(named i_callbackGasLimit)
             NUM_WORDS //numWords(named NUM_WORDS)
         );
-        // Quiz... is this redundant?
         emit RequestedRaffleWinner(requestId);
     }
 
@@ -176,18 +174,14 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
             s_lotteryState = LotteryState.OPEN;
             s_lastTimeStamp = block.timestamp;
             emit NoWinner(s_recentWinningNumber);
-            // revert Lottery__NoOnePickedWinningNumber();
         } else {
-            // address payable recentWinner = s_players[indexOfWinner];
             s_lotteryState = LotteryState.OPEN;
-            //function to delete s_playersNumber[] && s_playersEntry mapping
             uint256[] memory numbers = s_playersNumber;
             for (uint256 numberIndex = 0; numberIndex < numbers.length; numberIndex++) {
                 uint256 index = numbers[numberIndex];
                 s_playersEntry[index] = payable(address(0));
             }
             s_playersNumber = new uint256[](0);
-            // s_players = new address payable[](0);
             s_lotteryState = LotteryState.OPEN;
             s_lastTimeStamp = block.timestamp;
             uint256 amount = s_potMoney;
@@ -245,6 +239,12 @@ contract LotteryTrio is VRFConsumerBaseV2, KeeperCompatibleInterface, Ownable, R
 
     function getLatestTimeStamp() public view returns (uint256) {
         return s_lastTimeStamp;
+    }
+
+    function getMinutesBeforeNextDraw() public view returns (uint256) {
+        uint256 drawTime;
+        drawTime = (block.timestamp - s_lastTimeStamp) / 60;
+        return drawTime;
     }
 
     function getRequestConfirmations() public pure returns (uint256) {
