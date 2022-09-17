@@ -65,7 +65,7 @@ export const networkConfig: networkConfigInfo = {
         keepersUpdateInterval: "60",
         lotteryEntranceFee: ethers.utils.parseEther("0.01").toString(),
         callbackGasLimit: "500000", // 500,000 gas
-        vrfCoordinatorV2: "	0xbd13f08b8352A3635218ab9418E340c60d6Eb418",
+        vrfCoordinatorV2: "0xbd13f08b8352A3635218ab9418E340c60d6Eb418",
         // ethUsdPriceFeed: "0x8A753747A1Fa494EC906cE90E9f37563A8AF630e",
     },
     43113: {
