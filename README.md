@@ -1,5 +1,9 @@
 # Lucky Trio Lottery
 
+## Dapp Link
+
+-   Link: https://wild-limit-4050.on.fleek.co/
+
 ## Mechanics
 
 -   This will be a Lottery in which players will choose a number from 0-999. Players will pay entrance fee which will increase the Pot Money. 10% of entry fee will go to the admin as the fundraising mechanism. Only one player can choose a specific number so no same numbers chosen by players are allowed. Every hour the system will choose a random winning number. The entire pot money will be given to the winner. In the event no player has the winning number, the pot money shall be carried over to the next round. Best of Luck to all the players.
